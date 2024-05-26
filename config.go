@@ -4,12 +4,8 @@ import "time"
 
 func NewDefaultConfig() *QueueConfig {
 	return &QueueConfig{
-		DefaultQueueSetting: QueueSetting{
-			Disable:       false,
-			RetryTimes:    2,
-			RetryInterval: 1 * time.Minute,
-		},
-		QueueSetting: map[string]QueueSetting{},
+		DefaultQueueSetting: NewDefaultQueueSetting(),
+		QueueSetting:        make(map[string]QueueSetting),
 
 		WorkerPoolSize: 100,
 
@@ -23,6 +19,14 @@ func NewDefaultConfig() *QueueConfig {
 			JobInterval:         10 * time.Minute,
 			StoreTime:           7 * 24 * time.Hour,
 		},
+	}
+}
+
+func NewDefaultQueueSetting() QueueSetting {
+	return QueueSetting{
+		Disable:       false,
+		RetryTimes:    2,
+		RetryInterval: 1 * time.Minute,
 	}
 }
 

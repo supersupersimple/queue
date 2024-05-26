@@ -32,7 +32,6 @@ func (Job) Fields() []ent.Field {
 		field.Time("created_at").Default(time.Now),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 
-		// field.Enum("type").Values("OneTime", "Recurring").Default("OneTime"),
 		field.Enum("status").Values("Init", "Processing", "Successful", "Failed", "WaitRetry").Default("Init"),
 		field.String("queue_name").Default(DefaultQueueName),
 		field.String("ref_id").DefaultFunc(func() string {
@@ -54,8 +53,8 @@ func (Job) Edges() []ent.Edge {
 
 func (Job) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("scheduled_at", "status", "queue_name", "priority"),
+		index.Fields("status", "scheduled_at"),
 		index.Fields("ref_id", "queue_name").Unique(),
-		index.Fields("finished_at", "queue_name"),
+		index.Fields("queue_name", "finished_at"),
 	}
 }
