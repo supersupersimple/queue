@@ -57,7 +57,6 @@ var (
 )
 
 func New(db *sql.DB, config *QueueConfig, h Handler) (Queue, error) {
-	db.SetMaxOpenConns(1)
 	q := &queue{
 		db:       db,
 		config:   config,
@@ -225,16 +224,7 @@ func (q *queue) pickJobs(rePick bool, statuses []job.Status, limit int) []*ent.J
 		scheduledAt = scheduledAt.Add(-q.config.RePickProcessingJobDelay) // to pick up that over delay time still on processing jobs
 	}
 	if err := withTx(ctx, q.client, func(tx *ent.Tx) error {
-		jobs, err := tx.Job.Query().Where(
-			job.ScheduledAtLTE(scheduledAt),
-			job.QueueNameNotIn(q.disabledQueues...),
-			job.StatusIn(statuses...),
-		).
-			Order(
-				job.ByPriority(entsql.OrderDesc()),
-			).
-			Limit(limit).All(ctx)
-
+		jobs, err := q.queryJobs(tx, scheduledAt, statuses, limit)
 		if err != nil {
 			return err
 		}
@@ -248,12 +238,7 @@ func (q *queue) pickJobs(rePick bool, statuses []job.Status, limit int) []*ent.J
 			ids = append(ids, j.ID)
 			returnJobs = append(returnJobs, j)
 		}
-		err = tx.Job.Update().Where(
-			job.IDIn(ids...),
-		).
-			SetStatus(job.StatusProcessing).
-			Exec(ctx)
-
+		err = q.updateJobStatus(tx, ids)
 		return err
 	}); err != nil {
 		q.logger.Printf("picked jobs err %v", err)
@@ -263,6 +248,27 @@ func (q *queue) pickJobs(rePick bool, statuses []job.Status, limit int) []*ent.J
 		q.logger.Printf("picked %d jobs", len(returnJobs))
 	}
 	return returnJobs
+}
+
+func (q *queue) queryJobs(tx *ent.Tx, scheduledAt time.Time, statuses []job.Status, limit int) ([]*ent.Job, error) {
+	return tx.Job.Query().Where(
+		job.ScheduledAtLTE(scheduledAt),
+		job.QueueNameNotIn(q.disabledQueues...),
+		job.StatusIn(statuses...),
+	).
+		Order(
+			job.ByPriority(entsql.OrderDesc()),
+			job.ByScheduledAt(),
+		).
+		Limit(limit).All(context.Background())
+}
+
+func (q *queue) updateJobStatus(tx *ent.Tx, ids []uint64) error {
+	return tx.Job.Update().Where(
+		job.IDIn(ids...),
+	).
+		SetStatus(job.StatusProcessing).
+		Exec(context.Background())
 }
 
 func (q *queue) markJob(j *ent.Job) {

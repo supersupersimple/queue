@@ -17,7 +17,7 @@ var (
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"Init", "Processing", "Successful", "Failed", "WaitRetry"}, Default: "Init"},
 		{Name: "queue_name", Type: field.TypeString, Default: "default"},
 		{Name: "ref_id", Type: field.TypeString},
-		{Name: "priority", Type: field.TypeUint, Default: 1},
+		{Name: "priority", Type: field.TypeUint, Default: 0},
 		{Name: "retry_times", Type: field.TypeUint, Default: 0},
 		{Name: "body", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "error", Type: field.TypeString, Nullable: true, Size: 2147483647},
@@ -31,14 +31,19 @@ var (
 		PrimaryKey: []*schema.Column{SssqScheduledJobsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "job_scheduled_at_queue_name",
+				Name:    "job_status_scheduled_at",
 				Unique:  false,
-				Columns: []*schema.Column{SssqScheduledJobsColumns[10], SssqScheduledJobsColumns[4]},
+				Columns: []*schema.Column{SssqScheduledJobsColumns[3], SssqScheduledJobsColumns[10]},
 			},
 			{
-				Name:    "job_queue_name_ref_id",
+				Name:    "job_ref_id_queue_name",
 				Unique:  true,
-				Columns: []*schema.Column{SssqScheduledJobsColumns[4], SssqScheduledJobsColumns[5]},
+				Columns: []*schema.Column{SssqScheduledJobsColumns[5], SssqScheduledJobsColumns[4]},
+			},
+			{
+				Name:    "job_queue_name_finished_at",
+				Unique:  false,
+				Columns: []*schema.Column{SssqScheduledJobsColumns[4], SssqScheduledJobsColumns[11]},
 			},
 		},
 	}
